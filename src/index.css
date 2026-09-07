@@ -1,0 +1,199 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Clinical Color Schemes & Global Low-Light Rules */
+:root {
+  color-scheme: light;
+  --clinic-canvas: #f5f5f4;
+  --clinic-surface: #ffffff;
+  --clinic-surface-subtle: #fafaf9;
+  --clinic-border: #e7e5e4;
+  --clinic-text-main: #1c1917;
+  --clinic-text-muted: #78716c;
+}
+
+html.dark {
+  color-scheme: dark;
+  --clinic-canvas: #0c0a09;
+  --clinic-surface: #171513;
+  --clinic-surface-subtle: #201d1a;
+  --clinic-border: #2e2a27;
+  --clinic-text-main: #f5f5f4;
+  --clinic-text-muted: #a8a29e;
+}
+
+/* Base Body and Theme Transitions */
+body {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Global Dark Mode Surface & Text Overrides */
+.dark body {
+  background-color: #0c0a09;
+  color: #f5f5f4;
+}
+
+/* Surface backgrounds in dark mode */
+.dark .bg-white {
+  background-color: #171513 !important;
+}
+
+.dark .bg-stone-50 {
+  background-color: #1f1c19 !important;
+}
+
+.dark .bg-stone-100 {
+  background-color: #272421 !important;
+}
+
+.dark .bg-stone-100\/70 {
+  background-color: #0c0a09 !important;
+}
+
+.dark .bg-stone-200 {
+  background-color: #332f2b !important;
+}
+
+/* Text color contrast adjustments in dark mode */
+.dark .text-stone-900 {
+  color: #fafaf9 !important;
+}
+
+.dark .text-stone-800 {
+  color: #f5f5f4 !important;
+}
+
+.dark .text-stone-700 {
+  color: #e7e5e4 !important;
+}
+
+.dark .text-stone-600 {
+  color: #d6d3d1 !important;
+}
+
+.dark .text-stone-500 {
+  color: #a8a29e !important;
+}
+
+.dark .text-stone-400 {
+  color: #8c857f !important;
+}
+
+/* Border adjustments in dark mode */
+.dark .border-stone-100 {
+  border-color: #24211e !important;
+}
+
+.dark .border-stone-200 {
+  border-color: #2e2a27 !important;
+}
+
+.dark .border-stone-300 {
+  border-color: #3d3834 !important;
+}
+
+.dark .divide-stone-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-stone-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #2e2a27 !important;
+}
+
+/* Clinical Badge Luminescence for Dim Environments */
+.dark .bg-teal-50 {
+  background-color: rgba(13, 148, 136, 0.18) !important;
+}
+.dark .text-teal-800,
+.dark .text-teal-900 {
+  color: #2dd4bf !important;
+}
+.dark .border-teal-200 {
+  border-color: rgba(45, 212, 191, 0.35) !important;
+}
+
+.dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.18) !important;
+}
+.dark .text-emerald-700,
+.dark .text-emerald-800 {
+  color: #34d399 !important;
+}
+.dark .border-emerald-200,
+.dark .border-emerald-300 {
+  border-color: rgba(52, 211, 153, 0.35) !important;
+}
+
+.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.18) !important;
+}
+.dark .text-blue-700,
+.dark .text-blue-800 {
+  color: #60a5fa !important;
+}
+.dark .border-blue-200 {
+  border-color: rgba(96, 165, 250, 0.35) !important;
+}
+
+.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.18) !important;
+}
+.dark .text-amber-700,
+.dark .text-amber-800 {
+  color: #fbbf24 !important;
+}
+.dark .border-amber-200 {
+  border-color: rgba(251, 191, 36, 0.35) !important;
+}
+
+.dark .bg-rose-50,
+.dark .bg-red-50 {
+  background-color: rgba(244, 63, 94, 0.18) !important;
+}
+.dark .text-rose-700,
+.dark .text-red-700 {
+  color: #fb7185 !important;
+}
+
+/* Inputs, Textareas, and Selects in Dark Mode */
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark select,
+.dark textarea {
+  background-color: #1f1c19 !important;
+  color: #f5f5f4 !important;
+  border-color: #3d3834 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #78716c !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #0d9488 !important;
+  outline-color: #0d9488 !important;
+}
+
+/* Modals and Dialog Backdrops */
+.dark .bg-black\/50,
+.dark .bg-black\/60,
+.dark .bg-black\/70,
+.dark .bg-stone-900\/50 {
+  background-color: rgba(0, 0, 0, 0.82) !important;
+}
+
+/* Custom Scrollbars in Dark Mode to prevent harsh white glare */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #171513;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #332f2b;
+  border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #4a4540;
+}
