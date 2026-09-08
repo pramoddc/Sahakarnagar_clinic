@@ -1,6 +1,6 @@
 {
   "name": "Sahakar Physio - Clinic & Elder Care Business Operating System",
-  "description": "Comprehensive business planning, financial modeling, clinic capacity calculator, patient billing & PDF digital receipts, and launch execution system for a physiotherapy and home-visit elder care clinic in Sahakarnagar, Bangalore.",
+  "description": "Integrated 3-section healthcare operating system for Sahakarnagar, Bangalore featuring a General Homepage with clinical directory and appointment booking, a Patient & Caregiver Login Portal with 3-session attendance confirmation and home exercise tracking, and an Employee Clinical OS with unified bay scheduling, billing, EMR, and 48-hour Quick Broadcast SMS.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { PatientRecord, ClinicalSessionNote, TreatmentType, ServiceLocation } from '../types';
+import { PatientRecord, ClinicalSessionNote, TreatmentType, ServiceLocation, PatientMedicalRecord } from '../types';
 import { DEFAULT_PATIENTS } from '../data/patientDefaults';
+import { PatientMedicalRecords } from './PatientMedicalRecords';
 import { formatINR } from '../utils/finance';
 import { 
   Users, 
@@ -35,7 +36,10 @@ import {
   ArrowUpZA,
   Tag,
   BarChart3,
-  BellRing
+  BellRing,
+  HeartPulse,
+  ShieldAlert,
+  Scissors
 } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'sahakar_physio_patients_v1';
@@ -161,6 +165,32 @@ export const PatientManagement: React.FC<PatientManagementProps> = ({
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [showLogSessionModal, setShowLogSessionModal] = useState(false);
   const [quickLogPatientId, setQuickLogPatientId] = useState<string | null>(null);
+
+  // Sub-tabs navigation states
+  const [topLevelTab, setTopLevelTab] = useState<'directory' | 'medical_records'>('directory');
+  const [patientModalSubTab, setPatientModalSubTab] = useState<'clinical_notes' | 'medical_records'>('clinical_notes');
+  const [selectedDossierPatientId, setSelectedDossierPatientId] = useState<string>('pt-001');
+
+  // Callback to update patient medical records and persist to localStorage
+  const handleUpdateMedicalRecords = (patientId: string, updatedRecord: PatientMedicalRecord) => {
+    setPatients(prev => {
+      const next = prev.map(p => {
+        if (p.id === patientId) {
+          return {
+            ...p,
+            medicalRecords: updatedRecord
+          };
+        }
+        return p;
+      });
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
+      } catch (err) {
+        console.warn('Failed to save to localStorage:', err);
+      }
+      return next;
+    });
+  };
 
   // New Patient Form state
   const [newPatient, setNewPatient] = useState<Partial<PatientRecord>>({
@@ -523,8 +553,101 @@ export const PatientManagement: React.FC<PatientManagementProps> = ({
         </div>
       </div>
 
-      {/* Filter & Search & Sort Bar */}
-      <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs space-y-3">
+      {/* Primary Sub-Tabs Navigation */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-2">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setTopLevelTab('directory')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center cursor-pointer ${
+              topLevelTab === 'directory'
+                ? 'bg-stone-900 text-white shadow-sm'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            <Users className="w-4 h-4 mr-1.5" />
+            Patient Directory & Roster ({patients.length})
+          </button>
+          <button
+            onClick={() => setTopLevelTab('medical_records')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center cursor-pointer ${
+              topLevelTab === 'medical_records'
+                ? 'bg-teal-800 text-white shadow-sm'
+                : 'bg-stone-100 text-stone-600 hover:bg-teal-50 hover:text-teal-900'
+            }`}
+          >
+            <HeartPulse className="w-4 h-4 mr-1.5 text-rose-400" />
+            Patient Medical Records Sub-Tab (Chronic History, Surgeries & Alerts)
+          </button>
+        </div>
+
+        <div className="text-xs text-stone-500 font-medium">
+          {topLevelTab === 'medical_records'
+            ? 'KPME Clinical Safety Dossiers & Electronic Health Records'
+            : 'Sahakarnagar Practice Roster'}
+        </div>
+      </div>
+
+      {topLevelTab === 'medical_records' ? (
+        <div className="space-y-4">
+          {/* Patient Selector Strip */}
+          <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center">
+                <Stethoscope className="w-4 h-4 mr-1.5 text-teal-700" />
+                Select Patient Profile for Medical Records Dossier:
+              </span>
+              <span className="text-[11px] text-stone-500">
+                Switch between active patient charts to view and manage histories
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+              {patients.map((p) => {
+                const isSelected = p.id === selectedDossierPatientId;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedDossierPatientId(p.id)}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-teal-50/90 border-teal-600 ring-2 ring-teal-600/30'
+                        : 'bg-stone-50/70 border-stone-200 hover:bg-stone-100/80'
+                    }`}
+                  >
+                    <div className="font-bold text-xs text-stone-900 truncate">
+                      {p.fullName}
+                    </div>
+                    <div className="text-[10px] text-stone-500 flex items-center justify-between mt-0.5">
+                      <span>{p.age}y, {p.gender[0]}</span>
+                      <span className={`px-1.5 py-0.2 rounded font-semibold ${
+                        p.careType === 'home_care' ? 'text-emerald-700 bg-emerald-50' : 'text-sky-700 bg-sky-50'
+                      }`}>
+                        {p.careType === 'home_care' ? 'Home' : 'Clinic'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Active Patient Medical Records Component */}
+          {(() => {
+            const activePt = patients.find(p => p.id === selectedDossierPatientId) || patients[0];
+            if (!activePt) return null;
+            return (
+              <PatientMedicalRecords
+                patient={activePt}
+                onUpdateMedicalRecords={handleUpdateMedicalRecords}
+                standalone={true}
+              />
+            );
+          })()}
+        </div>
+      ) : (
+        <>
+          {/* Filter & Search & Sort Bar */}
+          <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs space-y-3">
         {/* Top Control Row: Search, Service Location Switcher & Sorting */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* Search box */}
@@ -930,22 +1053,39 @@ export const PatientManagement: React.FC<PatientManagementProps> = ({
               </div>
 
               {/* Card Footer / Actions */}
-              <div className="p-3 bg-stone-50/80 border-t border-stone-100 flex items-center justify-between gap-2">
+              <div className="p-3 bg-stone-50/80 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2">
                 <button
                   onClick={() => handleOpenQuickLog(patient)}
-                  className="px-3 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-semibold border border-teal-200 transition-colors flex items-center cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-semibold border border-teal-200 transition-colors flex items-center cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" />
-                  Log Session #{patient.sessionsCompleted + 1}
+                  Session #{patient.sessionsCompleted + 1}
                 </button>
 
-                <button
-                  onClick={() => setSelectedPatientId(patient.id)}
-                  className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-900 text-white text-xs font-semibold transition-colors flex items-center cursor-pointer"
-                >
-                  <FileText className="w-3.5 h-3.5 mr-1 text-teal-400" />
-                  Clinical Chart
-                </button>
+                <div className="flex items-center space-x-1.5">
+                  <button
+                    onClick={() => {
+                      setSelectedPatientId(patient.id);
+                      setPatientModalSubTab('medical_records');
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-semibold border border-rose-200 transition-colors flex items-center cursor-pointer"
+                    title="View Chronic History, Previous Surgeries & Allergy/Red-Flag Alerts"
+                  >
+                    <HeartPulse className="w-3.5 h-3.5 mr-1 text-rose-600" />
+                    Medical Records
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSelectedPatientId(patient.id);
+                      setPatientModalSubTab('clinical_notes');
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-900 text-white text-xs font-semibold transition-colors flex items-center cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5 mr-1 text-teal-400" />
+                    Chart
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -966,6 +1106,8 @@ export const PatientManagement: React.FC<PatientManagementProps> = ({
             Clear All Filters
           </button>
         </div>
+      )}
+        </>
       )}
 
       {/* MODAL 1: Intake New Patient */}
@@ -1414,8 +1556,43 @@ export const PatientManagement: React.FC<PatientManagementProps> = ({
               </div>
             </div>
 
-            {/* Chart Body */}
-            <div className="p-6 space-y-6 text-xs text-stone-800 max-h-[80vh] overflow-y-auto">
+            {/* Modal Sub-Tabs: Clinical Sessions vs Patient Medical Records */}
+            <div className="flex flex-wrap items-center px-6 pt-3 border-b border-stone-200 bg-stone-100/70 gap-2">
+              <button
+                onClick={() => setPatientModalSubTab('clinical_notes')}
+                className={`px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 transition-all flex items-center cursor-pointer ${
+                  patientModalSubTab === 'clinical_notes'
+                    ? 'border-teal-700 text-teal-900 bg-white shadow-2xs'
+                    : 'border-transparent text-stone-500 hover:text-stone-800'
+                }`}
+              >
+                <ClipboardList className="w-3.5 h-3.5 mr-1.5" />
+                Clinical Sessions & Progress Notes ({selectedPatient.notes?.length || 0})
+              </button>
+
+              <button
+                onClick={() => setPatientModalSubTab('medical_records')}
+                className={`px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 transition-all flex items-center cursor-pointer ${
+                  patientModalSubTab === 'medical_records'
+                    ? 'border-rose-600 text-rose-900 bg-white shadow-2xs'
+                    : 'border-transparent text-stone-500 hover:text-rose-800'
+                }`}
+              >
+                <HeartPulse className="w-3.5 h-3.5 mr-1.5 text-rose-600" />
+                Patient Medical Records (Chronic History, Surgeries, Allergy/Red-Flags)
+              </button>
+            </div>
+
+            {patientModalSubTab === 'medical_records' ? (
+              <div className="p-6 max-h-[80vh] overflow-y-auto">
+                <PatientMedicalRecords
+                  patient={selectedPatient}
+                  onUpdateMedicalRecords={handleUpdateMedicalRecords}
+                />
+              </div>
+            ) : (
+              /* Chart Body */
+              <div className="p-6 space-y-6 text-xs text-stone-800 max-h-[80vh] overflow-y-auto">
               {/* Summary Stats Row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-xl border border-stone-200 text-center">
                 <div>
@@ -1596,6 +1773,7 @@ export const PatientManagement: React.FC<PatientManagementProps> = ({
                 </div>
               </div>
             </div>
+          )}
 
             {/* Chart Footer */}
             <div className="bg-stone-50 px-6 py-3.5 border-t border-stone-200 flex justify-between items-center">

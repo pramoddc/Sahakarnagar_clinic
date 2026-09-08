@@ -111,6 +111,50 @@ export interface ClinicalSessionNote {
 export type TreatmentType = 'Chronic' | 'Post-Surgery' | 'Sports' | 'IT/Posture';
 export type ServiceLocation = 'Clinic' | 'Home';
 
+export interface ChronicConditionItem {
+  id: string;
+  condition: string; // e.g. "Type 2 Diabetes Mellitus", "Hypertension", "Osteoporosis (T-score -2.8)"
+  diagnosedYear?: string; // e.g. "2018"
+  severity: 'Mild' | 'Moderate' | 'Severe' | 'Controlled';
+  currentMedications: string[]; // e.g. ["Metformin 500mg BD", "Telmisartan 40mg OD"]
+  physioPrecaution: string; // Clinical relevance for physical therapy (e.g. check peripheral neuropathy, blood sugar limits)
+  status: 'Active' | 'Managed' | 'Resolved';
+}
+
+export interface SurgeryRecordItem {
+  id: string;
+  procedure: string; // e.g. "Left Total Knee Arthroplasty (TKR)", "L4-L5 Microdiscectomy"
+  surgeryDate: string; // e.g. "2026-07-28"
+  hospitalDoctor?: string; // e.g. "Aster CMI Hospital / Dr. M. S. Hegde"
+  implantsProsthetics?: string; // e.g. "Titanium cruciate-retaining implant, Cobalt-chrome femoral component"
+  recoveryComplications?: string; // e.g. "Mild delayed wound healing at week 1; resolved"
+  ptRehabSignificance: string; // Specific biomechanical guidance for the physiotherapist
+}
+
+export interface AllergyRedFlagItem {
+  id: string;
+  type: 'Allergy' | 'Clinical Red Flag' | 'Contraindication';
+  name: string; // e.g. "Adhesive Tape & Elastoplast Reaction", "Deep Vein Thrombosis (DVT) Risk", "Cardiac Pacemaker"
+  severity: 'Critical' | 'High' | 'Moderate';
+  clinicalTrigger: string; // e.g. "Direct skin contact with kinesiology tape", "Shortwave Diathermy / High-frequency electrotherapy"
+  actionDirective: string; // What PT staff MUST DO or AVOID
+  identifiedDate: string;
+}
+
+export interface PatientMedicalRecord {
+  bloodGroup?: string; // e.g. "O +ve", "B +ve", "A +ve"
+  chronicHistory: ChronicConditionItem[];
+  previousSurgeries: SurgeryRecordItem[];
+  allergyRedFlags: AllergyRedFlagItem[];
+  emergencyContact?: {
+    name: string;
+    relationship: string;
+    phone: string;
+  };
+  lastReviewedDate?: string;
+  reviewedBy?: string;
+}
+
 export interface PatientRecord {
   id: string;
   fullName: string;
@@ -137,6 +181,7 @@ export interface PatientRecord {
   targetOutcome: string;
   status: 'Active' | 'Completed' | 'On Hold';
   notes: ClinicalSessionNote[];
+  medicalRecords?: PatientMedicalRecord;
 }
 
 export type ScheduleItemType = 'clinic_appointment' | 'home_visit' | 'travel_block';
@@ -417,4 +462,37 @@ export interface BillingFilterState {
   careType: 'All' | ServiceLocation;
   riskFilter: 'All' | 'Has-Balance' | 'Deficit-Only';
 }
+
+export interface LoggedInPatient {
+  id: string;
+  fullName: string;
+  phone: string;
+  email?: string;
+  age: number;
+  gender: string;
+  diagnosis: string;
+  careType: 'clinic' | 'home_care';
+  attendingPT: string;
+  packageType: number;
+  sessionsCompleted: number;
+  totalPackageFee: number;
+  amountPaid: number;
+  paymentStatus: PaymentStatus;
+  initialPainVAS: number;
+  currentPainVAS: number;
+  targetOutcome: string;
+  homeExercisesPrescribed?: string;
+}
+
+export interface LoggedInEmployee {
+  id: string;
+  name: string;
+  role: 'lead_pt' | 'mobile_pt' | 'operations' | 'admin';
+  roleTitle: string;
+  credentials: string;
+  shiftSchedule: string;
+  assignedLocation: string;
+  email: string;
+}
+
 

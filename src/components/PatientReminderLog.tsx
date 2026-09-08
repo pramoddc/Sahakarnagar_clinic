@@ -27,7 +27,8 @@ import {
   Languages,
   ShieldCheck,
   Sparkles,
-  Info
+  Info,
+  Radio
 } from 'lucide-react';
 import {
   PatientReminderSeries,
@@ -41,6 +42,10 @@ import {
   INITIAL_REMINDER_LOGS,
   CLINICAL_REMINDER_TEMPLATES
 } from '../data/reminderDefaults';
+import {
+  QuickBroadcastModal,
+  isSessionWithinNext48Hours
+} from './QuickBroadcastModal';
 
 export const PatientReminderLog: React.FC = () => {
   // --- Persistent State ---
@@ -83,12 +88,17 @@ export const PatientReminderLog: React.FC = () => {
   };
 
   // --- Active View & Filters ---
-  const [activeTab, setActiveTab] = useState<'at_risk' | 'all_series' | 'logs' | 'templates'>('at_risk');
+  const [activeTab, setActiveTab] = useState<
+    'at_risk' | 'all_series' | 'logs' | 'templates' | 'quick_broadcast'
+  >('at_risk');
   const [searchQuery, setSearchQuery] = useState('');
   const [channelFilter, setChannelFilter] = useState<'ALL' | ReminderChannel>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [locationFilter, setLocationFilter] = useState<'ALL' | ServiceLocation>('ALL');
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'kn'>('en');
+
+  // Quick Broadcast Feature State
+  const [isQuickBroadcastOpen, setIsQuickBroadcastOpen] = useState(false);
 
   // Modal State for Dispatching Reminder
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
@@ -104,6 +114,29 @@ export const PatientReminderLog: React.FC = () => {
   const [callOutcome, setCallOutcome] = useState<'Confirmed' | 'Reschedule Requested' | 'No Answer'>('Confirmed');
 
   // --- Derived Statistics ---
+  // Pending appointments in the next 48 hours for Quick Broadcast
+  const pending48hPatients = useMemo(() => {
+    return patientSeries.filter(p =>
+      p.upcomingSessions.some(
+        s => !s.confirmed && isSessionWithinNext48Hours(s.date, '2026-09-08')
+      )
+    );
+  }, [patientSeries]);
+
+  // Handler for Quick Broadcast batch dispatches
+  const handleBroadcastComplete = (
+    newLogs: ReminderLogItem[],
+    updatedSeries: PatientReminderSeries[],
+    summaryMsg: string
+  ) => {
+    persistSeries(updatedSeries);
+    persistLogs([...newLogs, ...reminderLogs]);
+    setDispatchSuccessNotice(summaryMsg);
+    setTimeout(() => {
+      setDispatchSuccessNotice(null);
+    }, 8000);
+  };
+
   const atRiskPatients = useMemo(() => {
     return patientSeries.filter(p => p.hasUnconfirmedNext3);
   }, [patientSeries]);
@@ -535,6 +568,22 @@ ${dates}
 
           {/* Header Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {/* Quick Broadcast Button (Next 48h Pending SMS) */}
+            <button
+              onClick={() => setIsQuickBroadcastOpen(true)}
+              id="btn-quick-broadcast-header"
+              title="Quick Broadcast template-based SMS reminders to all patients with pending appointments for the next 48 hours"
+              className="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-bold bg-teal-800 hover:bg-teal-900 text-white transition-all shadow-xs cursor-pointer border border-teal-600/60 ring-2 ring-teal-500/20"
+            >
+              <Radio className="w-3.5 h-3.5 mr-1.5 text-teal-300 animate-pulse" />
+              <span>Quick Broadcast (48h)</span>
+              {pending48hPatients.length > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-stone-950">
+                  {pending48hPatients.length}
+                </span>
+              )}
+            </button>
+
             <button
               onClick={handleBatchOutreach}
               id="btn-batch-outreach"
@@ -671,6 +720,40 @@ ${dates}
             </p>
           </div>
         </div>
+
+        {/* Quick Broadcast Smart Alert Banner (When Pending 48h Appointments Detected) */}
+        {pending48hPatients.length > 0 && activeTab !== 'quick_broadcast' && (
+          <div className="mt-4 p-3.5 rounded-2xl bg-gradient-to-r from-teal-900 via-teal-950 to-stone-900 border border-teal-600/60 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-white animate-in fade-in duration-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-xl bg-teal-500/20 border border-teal-400 flex items-center justify-center text-teal-300 shrink-0 shadow-xs">
+                <Radio className="w-4 h-4 text-teal-300 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold text-xs text-white">
+                    Quick Broadcast: {pending48hPatients.length} Patients with Pending Sessions in Next 48 Hours
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-400 text-stone-950">
+                    DLT SMS Broadcast Ready
+                  </span>
+                </div>
+                <p className="text-[11px] text-teal-200/90 mt-0.5">
+                  Send template-based SMS reminders in one click to prevent last-minute clinic gaps and secure elder home-care travel routes.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                onClick={() => setIsQuickBroadcastOpen(true)}
+                id="banner-btn-quick-broadcast"
+                className="px-3.5 py-1.5 rounded-xl bg-teal-400 hover:bg-teal-300 text-stone-950 font-black text-xs transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>Launch Quick Broadcast</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Navigation Tabs Bar */}
@@ -748,6 +831,25 @@ ${dates}
           >
             <FileText className="w-3.5 h-3.5" />
             <span>DLT & Message Templates</span>
+          </button>
+
+          {/* Tab 5: Quick Broadcast (48-Hour Pending Appointments) */}
+          <button
+            onClick={() => setActiveTab('quick_broadcast')}
+            id="tab-quick-broadcast"
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
+              activeTab === 'quick_broadcast'
+                ? 'bg-teal-800 text-white shadow-xs ring-2 ring-teal-500/30'
+                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800'
+            }`}
+          >
+            <Radio className="w-3.5 h-3.5 text-teal-400" />
+            <span>Quick Broadcast (48h)</span>
+            {pending48hPatients.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-stone-950">
+                {pending48hPatients.length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -1499,6 +1601,21 @@ ${dates}
       )}
 
       {/* ========================================================================= */}
+      {/* SECTION 5: QUICK BROADCAST (48-HOUR PENDING APPOINTMENTS) */}
+      {/* ========================================================================= */}
+      {activeTab === 'quick_broadcast' && (
+        <QuickBroadcastModal
+          standalone={true}
+          isOpen={true}
+          onClose={() => setActiveTab('at_risk')}
+          patientSeries={patientSeries}
+          onBroadcastComplete={handleBroadcastComplete}
+          onNavigateToLogs={() => setActiveTab('logs')}
+          currentBaseDate="2026-09-08"
+        />
+      )}
+
+      {/* ========================================================================= */}
       {/* MODAL 1: DISPATCH MANUAL REMINDER */}
       {/* ========================================================================= */}
       {isDispatchModalOpen && (
@@ -1704,6 +1821,22 @@ ${dates}
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: QUICK BROADCAST DIALOG (48H PENDING APPOINTMENTS) */}
+      {/* ========================================================================= */}
+      <QuickBroadcastModal
+        standalone={false}
+        isOpen={isQuickBroadcastOpen}
+        onClose={() => setIsQuickBroadcastOpen(false)}
+        patientSeries={patientSeries}
+        onBroadcastComplete={handleBroadcastComplete}
+        onNavigateToLogs={() => {
+          setIsQuickBroadcastOpen(false);
+          setActiveTab('logs');
+        }}
+        currentBaseDate="2026-09-08"
+      />
     </div>
   );
 };
